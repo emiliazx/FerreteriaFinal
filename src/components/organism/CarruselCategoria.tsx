@@ -1,9 +1,9 @@
-import CardCategoria from "../molecules/CardCategoria";
+import CardCategoria from "../molecules/cardCategoria";
 import { useEffect, useState } from "react";
 
 const POR_PAGINA = 3
 
-// Orden, título e imagen con que aparecen las categorías en la portada
+
 const ordenCarrusel = [
     { slug: 'herramientas', titulo: 'Herramientas', imagen: '/img/manuales.jpg' },
     { slug: 'electricidad', titulo: 'Eléctricas',   imagen: '/img/electricas.jpg' },
@@ -16,7 +16,7 @@ const ordenCarrusel = [
     { slug: 'gasfiteria',   titulo: 'Gasfitería',   imagen: '/img/gasfiteria.jpg' },
 ]
 
-// Agrupa las categorías de 3 en 3 (una página del carrusel)
+
 const paginas = Array.from(
     { length: Math.ceil(ordenCarrusel.length / POR_PAGINA) },
     (_, i) => ordenCarrusel.slice(i * POR_PAGINA, (i + 1) * POR_PAGINA)
@@ -26,7 +26,7 @@ function CarruselCategorias() {
 
     const [indice, setIndice] = useState(0)
 
-    // Avanza solo cada 6 s y se reinicia al cambiar de página a mano
+  
     useEffect(() => {
         const temporizador = setInterval(
             () => setIndice(i => (i + 1) % paginas.length),
