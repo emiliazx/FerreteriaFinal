@@ -12,7 +12,7 @@ interface PanelProps {
     acciones: { texto: string; to: string; secundaria?: boolean }[];
 }
 
-// Estructura común de los paneles de Usuario, Vendedor y Administrador
+
 function Panel({ titulo, descripcion, resumen, tablaTitulo, columnas, filas, accionesTitulo, acciones }: PanelProps) {
 
     return (

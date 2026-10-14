@@ -1,4 +1,4 @@
-import CardCategoria from "../molecules/cardCategoria";
+import CardCategoria from "../molecules/CardCategoria";
 import { useEffect, useState } from "react";
 
 const POR_PAGINA = 3
