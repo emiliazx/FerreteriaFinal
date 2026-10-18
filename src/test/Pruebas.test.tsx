@@ -24,10 +24,14 @@ function EnRuta() {
   return <span data-testid="ruta-actual">{location.pathname}</span>;
 }
 
-function conRouter(ui: React.ReactNode, initialEntries = ["/"]) {
+function conRouter(
+  ui: React.ReactNode,
+  initialEntries = ["/"]
+) {
   return render(
     <MemoryRouter initialEntries={initialEntries}>
       <Routes>
+        <Route path="/categoria/:slug" element={<>{ui}<EnRuta /></>} />
         <Route path="*" element={<>{ui}<EnRuta /></>} />
       </Routes>
     </MemoryRouter>
@@ -96,7 +100,7 @@ describe("Tarjetas y catálogo", () => {
   test("Productos filtra por la categoría de la URL", () => {
     const otro = { ...producto, id: 2, categoria: "construccion", titulo: "Cemento" };
     conRouter(<Productos productos={[producto, otro]} categorias={categorias} onAgregar={vi.fn()} />, ["/categoria/herramientas"]);
-    expect(screen.getByRole("heading", { name: "Herramientas" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Herramientas" })).toBeTruthy();
     expect(screen.getByText("Martillo de acero")).toBeTruthy();
     expect(screen.queryByText("Cemento")).toBeNull();
   });
@@ -128,7 +132,7 @@ describe("Carrito de compras", () => {
   test("ItemCarrito informa cuando se elimina un producto", () => {
     const onEliminar = vi.fn();
     render(<MemoryRouter><ItemCarrito item={item} onCambiarCantidad={vi.fn()} onEliminar={onEliminar} /></MemoryRouter>);
-    fireEvent.click(screen.getByRole("button", { name: "Eliminar producto" }));
+    fireEvent.click(screen.getByTitle("Eliminar producto"));
     expect(onEliminar).toHaveBeenCalledWith(1);
   });
 
