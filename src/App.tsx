@@ -65,7 +65,7 @@ const productos: Producto[] = [
   {
     id: 703,
     categoria: "construccion",
-    titulo: "Piso Vinílico SPC Texturizado",
+    titulo: "Ladrillo Macizo y Perforado",
     descripcion: "Ladrillo cerámico hueco diseñado para la edificación de muros perimetrales e interiores con excelente aislamiento térmico y acústico.",
     precio: 650,
     imagen: "/img/contr2.jpg",
