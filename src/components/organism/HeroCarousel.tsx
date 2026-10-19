@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 const slides = [
     { imagen: '/img/logo.jpg',  alt: 'Ferretería Los Maestros' },
@@ -22,7 +23,7 @@ function HeroCarousel() {
     const anterior = () => setIndice(i => (i - 1 + slides.length) % slides.length)
 
     return (
-        <header className="hero-carousel carousel">
+        <header className="hero-carousel carousel" aria-label="Presentación de Ferretería Los Maestros">
 
             {slides.map((slide, i) => (
                 <img
@@ -32,6 +33,15 @@ function HeroCarousel() {
                     className={`slide-img${i === indice ? ' activo' : ''}`}
                 />
             ))}
+
+            <div className="hero-copy">
+                <span className="hero-eyebrow">FERRETERÍA LOS MAESTROS</span>
+                <h1>Todo para construir y reparar</h1>
+                <p>Encuentra materiales, herramientas y asesoría para llevar adelante tu próximo proyecto.</p>
+                <Link to="/productos" className="btn btn-naranja hero-cta">
+                    Explorar productos
+                </Link>
+            </div>
 
             <button className="carousel-control-prev" type="button" onClick={anterior}>
                 <span className="carousel-control-prev-icon" aria-hidden="true"></span>
