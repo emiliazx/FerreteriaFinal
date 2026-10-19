@@ -14,3 +14,4 @@ function ScrollArriba() {
 }
 
 export default ScrollArriba
+.call
