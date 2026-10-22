@@ -211,15 +211,13 @@ function Checkout({ items, subtotal, onPedidoRealizado }: CheckoutProps) {
 
                         <section className="mb-4" aria-labelledby="checkout-pago">
                             <h2 id="checkout-pago" className="contacto-subtitulo">Método de pago</h2>
-                            <label className="form-label" htmlFor="checkout-metodo">Selecciona cómo pagarás</label>
                             <select className={`form-select contacto-input${errores.metodoPago ? " is-invalid" : ""}`} id="checkout-metodo" name="metodoPago" defaultValue="" onChange={e => cambiarCampo("metodoPago", e.target.value)} aria-invalid={Boolean(errores.metodoPago)}>
                                 <option value="" disabled>Selecciona un método</option>
                                 <option value="tarjeta">Tarjeta de crédito o débito</option>
                                 <option value="transferencia">Transferencia bancaria</option>
-                                <option value="contra-entrega">Efectivo al recibir</option>
                             </select>
                             {errores.metodoPago && <div className="invalid-feedback">{mensajesError.metodoPago}</div>}
-                            <p className="form-text mb-0">El pago se coordinará contigo al confirmar el despacho. No ingreses datos de tarjeta en este sitio.</p>
+                            <p className="form-text mb-0">Te redireccionaremos para completar el pago</p>
                         </section>
 
                         <button type="submit" className="btn btn-naranja w-100 fw-bold py-3">
