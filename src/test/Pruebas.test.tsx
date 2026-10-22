@@ -160,7 +160,36 @@ describe("Carrito de compras", () => {
     expect(screen.getByLabelText("Nombre y apellido")).toBeTruthy();
     expect(screen.getByLabelText("Dirección")).toBeTruthy();
     expect(screen.getByLabelText("Selecciona cómo pagarás")).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /Chilexpress/ })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /Starken/ })).toBeTruthy();
     expect(screen.getByText("× 2")).toBeTruthy();
+  });
+
+  test("Checkout actualiza el despacho y el total según el transportista", () => {
+    conRouter(<Checkout items={[item]} subtotal={10000} onPedidoRealizado={vi.fn()} />, ["/checkout"]);
+    fireEvent.click(screen.getByRole("radio", { name: /Chilexpress/ }));
+    expect(screen.getByText("3-4 días hábiles")).toBeTruthy();
+    expect(screen.getByText("$14.990")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("radio", { name: /Starken/ }));
+    expect(screen.getByText("6-7 días hábiles")).toBeTruthy();
+    expect(screen.getByText("$12.990")).toBeTruthy();
+  });
+
+  test("Checkout marca los campos pendientes al intentar confirmar y revalida al completarlos", () => {
+    const onPedidoRealizado = vi.fn();
+    conRouter(<Checkout items={[item]} subtotal={10000} onPedidoRealizado={onPedidoRealizado} />, ["/checkout"]);
+    fireEvent.click(screen.getByRole("button", { name: "CONFIRMAR PEDIDO" }));
+
+    expect(screen.getByRole("alert").textContent).toMatch(/Revisa los campos marcados/);
+    expect(screen.getByText("Ingresa tu nombre y apellido (mínimo 3 letras).")).toBeTruthy();
+    expect(screen.getByText("Selecciona un transportista para continuar.")).toBeTruthy();
+    expect(onPedidoRealizado).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Nombre y apellido"), { target: { value: "María González" } });
+    fireEvent.click(screen.getByRole("radio", { name: /Chilexpress/ }));
+    expect(screen.queryByText("Ingresa tu nombre y apellido (mínimo 3 letras).")).toBeNull();
+    expect(screen.queryByText("Selecciona un transportista para continuar.")).toBeNull();
   });
 
   test("Checkout confirma el pedido y vacía el carrito", () => {
@@ -172,6 +201,7 @@ describe("Carrito de compras", () => {
     fireEvent.change(screen.getByLabelText("Dirección"), { target: { value: "Av. Central 123" } });
     fireEvent.change(screen.getByLabelText("Comuna"), { target: { value: "Santiago" } });
     fireEvent.change(screen.getByLabelText("Región"), { target: { value: "Metropolitana" } });
+    fireEvent.click(screen.getByRole("radio", { name: /Chilexpress/ }));
     fireEvent.change(screen.getByLabelText("Selecciona cómo pagarás"), { target: { value: "transferencia" } });
     fireEvent.click(screen.getByRole("button", { name: "CONFIRMAR PEDIDO" }));
     expect(onPedidoRealizado).toHaveBeenCalledOnce();
