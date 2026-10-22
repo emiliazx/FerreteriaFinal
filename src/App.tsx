@@ -7,7 +7,7 @@ import { CatalogPage } from './pages/CatalogPage'
 import { ContactPage } from './pages/ContactPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
-import { ProductDetailsPage } from './pages/ProductDetailsPage'
+import { ProductDetailsPage } from './pages/ProductoDetallesPago'
 import { ThankYouPage } from './pages/ExitosoPago'
 
 function AppContent() {
