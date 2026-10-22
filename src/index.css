@@ -274,6 +274,29 @@ a { text-decoration: none; }
 .resumen-orden { background-color: #fff; border-top: 4px solid var(--ink) !important; }
 .total-orden { color: var(--ink); }
 
+/* ---------- Checkout ---------- */
+.checkout-page { max-width: 1120px; }
+.checkout-heading {
+  margin-bottom: 2rem;
+  padding: 1.5rem 1.75rem;
+  background: #fff;
+  border-left: 5px solid var(--ink);
+  box-shadow: 0 4px 16px rgba(0,0,0,.07);
+}
+.checkout-heading h1 { color: var(--accent); }
+.checkout-card {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  background: #fff;
+  border-top: 4px solid var(--ink);
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 5px 20px rgba(0,0,0,.08);
+}
+.checkout-confirmacion { max-width: 680px; }
+.checkout-resumen { position: sticky; top: 1.5rem; }
+@media (max-width: 991px) {
+  .checkout-resumen { position: static; }
+}
+
 /* ---------- Contacto ---------- */
 .contacto-page { max-width: 1120px; padding-top: 1rem; padding-bottom: 2rem; }
 .contacto-heading {
