@@ -17,7 +17,10 @@ import NoEncontrado from "../components/pages/NoEncontrado";
 import Gracias from "../components/pages/Gracias";
 import Admin from "../components/pages/Admin";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 function EnRuta() {
   const location = useLocation();
@@ -203,8 +206,10 @@ describe("Inicio de sesión", () => {
 
 describe("Formulario de contacto", () => {
   test("marca errores al enviar el formulario vacío", () => {
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
     conRouter(<Contacto />);
     fireEvent.click(screen.getByRole("button", { name: "ENVIAR" }));
+    expect(alert).toHaveBeenCalledWith("Debe ingresar su correo electrónico");
     expect(screen.getByRole("alert")).toBeTruthy();
     expect(screen.getByText("Ingresa tu nombre y apellido (mínimo 3 letras).")).toBeTruthy();
     expect(screen.getByText("Ingresa un teléfono válido (mínimo 8 dígitos).")).toBeTruthy();
