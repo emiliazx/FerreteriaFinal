@@ -10,6 +10,7 @@ import Estado from "../components/atoms/Estado";
 import CardProducto from "../components/molecules/CardProducto";
 import ItemCarrito from "../components/molecules/ItemCarrito";
 import Carrito from "../components/pages/Carrito";
+import Checkout from "../components/pages/Checkout";
 import Productos from "../components/pages/Productos";
 import Login from "../components/pages/Login";
 import Contacto from "../components/pages/Contacto";
@@ -17,7 +18,10 @@ import NoEncontrado from "../components/pages/NoEncontrado";
 import Gracias from "../components/pages/Gracias";
 import Admin from "../components/pages/Admin";
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 function EnRuta() {
   const location = useLocation();
@@ -149,6 +153,30 @@ describe("Carrito de compras", () => {
     expect(screen.getByRole("button", { name: "Ir a Pagar" })).toHaveProperty("disabled", false);
     expect(screen.getByText("Resumen de la Orden")).toBeTruthy();
   });
+
+  test("Checkout solicita datos de contacto, despacho y método de pago", () => {
+    conRouter(<Checkout items={[item]} subtotal={10000} onPedidoRealizado={vi.fn()} />, ["/checkout"]);
+    expect(screen.getByRole("heading", { name: "Datos de despacho y pago" })).toBeTruthy();
+    expect(screen.getByLabelText("Nombre y apellido")).toBeTruthy();
+    expect(screen.getByLabelText("Dirección")).toBeTruthy();
+    expect(screen.getByLabelText("Selecciona cómo pagarás")).toBeTruthy();
+    expect(screen.getByText("× 2")).toBeTruthy();
+  });
+
+  test("Checkout confirma el pedido y vacía el carrito", () => {
+    const onPedidoRealizado = vi.fn();
+    conRouter(<Checkout items={[item]} subtotal={10000} onPedidoRealizado={onPedidoRealizado} />, ["/checkout"]);
+    fireEvent.change(screen.getByLabelText("Nombre y apellido"), { target: { value: "María González" } });
+    fireEvent.change(screen.getByLabelText("Correo electrónico"), { target: { value: "maria@correo.cl" } });
+    fireEvent.change(screen.getByLabelText("Teléfono"), { target: { value: "+56912345678" } });
+    fireEvent.change(screen.getByLabelText("Dirección"), { target: { value: "Av. Central 123" } });
+    fireEvent.change(screen.getByLabelText("Comuna"), { target: { value: "Santiago" } });
+    fireEvent.change(screen.getByLabelText("Región"), { target: { value: "Metropolitana" } });
+    fireEvent.change(screen.getByLabelText("Selecciona cómo pagarás"), { target: { value: "transferencia" } });
+    fireEvent.click(screen.getByRole("button", { name: "CONFIRMAR PEDIDO" }));
+    expect(onPedidoRealizado).toHaveBeenCalledOnce();
+    expect(screen.getByRole("heading", { name: "¡Pedido realizado!" })).toBeTruthy();
+  });
 });
 
 describe("Inicio de sesión", () => {
@@ -203,8 +231,10 @@ describe("Inicio de sesión", () => {
 
 describe("Formulario de contacto", () => {
   test("marca errores al enviar el formulario vacío", () => {
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
     conRouter(<Contacto />);
     fireEvent.click(screen.getByRole("button", { name: "ENVIAR" }));
+    expect(alert).toHaveBeenCalledWith("Debe ingresar su correo electrónico");
     expect(screen.getByRole("alert")).toBeTruthy();
     expect(screen.getByText("Ingresa tu nombre y apellido (mínimo 3 letras).")).toBeTruthy();
     expect(screen.getByText("Ingresa un teléfono válido (mínimo 8 dígitos).")).toBeTruthy();

@@ -56,6 +56,7 @@ import Inicio from "./components/pages/Inicio";
 import Productos from "./components/pages/Productos";
 import Detalleproducto from "./components/pages/DetalleProducto";
 import Carrito from "./components/pages/Carrito";
+import Checkout from "./components/pages/Checkout";
 import Contacto from "./components/pages/Contacto";
 import Gracias from "./components/pages/Gracias";
 import QuienesSomos from "./components/pages/QuienesSomos";
@@ -467,6 +468,17 @@ function App() {
                 subtotal={subtotal}
                 onCambiarCantidad={cambiarCantidad}
                 onEliminar={eliminar}
+              />
+            }
+          />
+
+          <Route
+            path="/checkout"
+            element={
+              <Checkout
+                items={items}
+                subtotal={subtotal}
+                onPedidoRealizado={() => setLineas([])}
               />
             }
           />

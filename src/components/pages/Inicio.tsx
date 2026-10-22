@@ -32,12 +32,20 @@ function Inicio(){
         <>
             <HeroCarousel />
 
-            <section className="py-5 my-5 border-bottom">
+            <section className="inicio-beneficios">
                 <div className="container">
-                    <div className="row text-center g-4">
+                    <div className="inicio-seccion-titulo">
+                        <span className="inicio-etiqueta">COMPRA CON CONFIANZA</span>
+                        <h2 className="fw-bold titulo-seccion">Todo lo que tu proyecto necesita</h2>
+                        <p className="text-secondary mb-0">
+                            Soluciones prácticas para que avances en cada etapa de tu trabajo.
+                        </p>
+                    </div>
+
+                    <div className="row g-4">
 
                         {beneficios.map(b => (
-                            <div className="col-12 col-md-6 col-lg-3" key={b.titulo}>
+                            <div className="col-12 col-md-6" key={b.titulo}>
                                 <CardBeneficio {...b} />
                             </div>
                         ))}
