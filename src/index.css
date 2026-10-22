@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: #f5f5f5; color: #242424; font-family: Arial, Helvetica, sans-serif; }
+button, input, textarea { font: inherit; }
+a { color: inherit; text-decoration: none; }
+button, a { -webkit-tap-highlight-color: transparent; }
+=======
 /* ---------- Variables globales (identidad Los Maestros) ---------- */
 :root {
   --bg: #e5e5e5;
@@ -317,3 +325,4 @@ a { text-decoration: none; }
   .dashboard { padding: 20px; }
   .dashboard-header { flex-direction: column; }
 }
+>>>>>>> origin/main

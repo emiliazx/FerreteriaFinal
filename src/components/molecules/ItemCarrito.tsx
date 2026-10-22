@@ -58,7 +58,7 @@ function ItemCarrito({ item, onCambiarCantidad, onEliminar }: ItemCarritoProps) 
                     <button
                         type="button"
                         className="btn btn-outline-danger btn-sm"
-                        title="Eliminar producto"
+                        title="Eliminar producto del carrito"
                         onClick={() => onEliminar(item.id)}
                     >
                         🗑️
