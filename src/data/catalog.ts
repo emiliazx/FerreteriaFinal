@@ -197,7 +197,7 @@ export const benefits = [
 ]
 
 export const featuredBrands = [
-  { name: 'Makita', image: '/Makita.jpg' },
+  { name: 'Makita', image: '/makita.jpg' },
   { name: 'Stanley', image: '/stanley.jpg' },
   { name: 'Polpaico', image: '/polpaico.jpg' },
   { name: 'Bticino', image: '/bticino.jpg' },
