@@ -301,6 +301,24 @@ a { text-decoration: none; }
 }
 .checkout-confirmacion { max-width: 680px; }
 .checkout-resumen { position: sticky; top: 1.5rem; }
+.checkout-carrier-option {
+  display: flex;
+  height: 100%;
+  gap: .75rem;
+  padding: 1rem;
+  border: 1px solid #c9c9c9;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.checkout-carrier-option:has(input:checked) {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 .15rem rgba(243,112,33,.16);
+}
+.checkout-carrier-option.is-invalid { border-color: #dc3545; }
+.checkout-carrier-option .form-check-input { flex: 0 0 auto; }
+.checkout-carrier-details { display: flex; flex-direction: column; gap: .25rem; }
 @media (max-width: 991px) {
   .checkout-resumen { position: static; }
 }

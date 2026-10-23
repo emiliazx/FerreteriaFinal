@@ -39,9 +39,11 @@ function Contacto(){
         e.preventDefault()
         setIntentado(true)
 
+        ////
         if (!valores.email.trim()) {
             window.alert('Debe ingresar su correo electrónico')
         }
+        ////
 
         const nuevos: Partial<Record<Campo, boolean>> = {}
         let valido = true
