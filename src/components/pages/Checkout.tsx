@@ -1,18 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-
-interface CheckoutItem {
-    id: number;
-    titulo: string;
-    precio: number;
-    cantidad: number;
-}
-
-interface CheckoutProps {
-    items: CheckoutItem[];
-    subtotal: number;
-    onPedidoRealizado: () => void;
-}
+import { useCart } from "../../context/CartContext";
 
 type Campo = "nombre" | "email" | "telefono" | "direccion" | "comuna" | "region" | "transportista" | "metodoPago";
 
@@ -43,7 +31,8 @@ const mensajesError: Record<Campo, string> = {
     metodoPago: "Selecciona un método de pago.",
 };
 
-function Checkout({ items, subtotal, onPedidoRealizado }: CheckoutProps) {
+function Checkout() {
+    const { items, subtotal, vaciar } = useCart();
     const [pedidoRealizado, setPedidoRealizado] = useState(false);
     const [transportista, setTransportista] = useState<keyof typeof transportistas | "">("");
     const [errores, setErrores] = useState<Partial<Record<Campo, boolean>>>({});
@@ -77,7 +66,7 @@ function Checkout({ items, subtotal, onPedidoRealizado }: CheckoutProps) {
         setErrores(nuevosErrores);
         if (Object.values(nuevosErrores).some(Boolean)) return;
 
-        onPedidoRealizado();
+        vaciar();
         setPedidoRealizado(true);
     };
     const hayErrores = Object.values(errores).some(Boolean);

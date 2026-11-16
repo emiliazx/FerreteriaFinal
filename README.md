@@ -1,75 +1,57 @@
-# React + TypeScript + Vite
+# Ferretería Los Maestros
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Tienda online de ferretería orientada a maestros y contratistas.  
+Frontend en React + TypeScript + Vite + Bootstrap.
 
-Currently, two official plugins are available:
+## Características
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Catálogo por categorías (construcción, pintura, herramientas, gasfitería, electricidad, tornillos, madera, seguridad, jardín)
+- Carrito con persistencia en `localStorage`
+- Checkout con validación de formulario, despacho (Chilexpress / Starken) y métodos de pago
+- Páginas: inicio, catálogo, detalle, carrito, checkout, contacto, quiénes somos, login y paneles de rol (usuario / vendedor / admin)
 
-## React Compiler
+## Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React 19 + TypeScript
+- Vite 8
+- React Router 7
+- Bootstrap 5
+- Vitest + Testing Library
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Estructura
 
 ```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+src/
+├── App.tsx                 # Rutas y layout
+├── main.tsx
+├── context/CartContext.tsx # Estado del carrito + localStorage
+├── data/productos.ts       # Catálogo y categorías
+├── components/
+│   ├── atoms/              # Botones, estados
+│   ├── molecules/          # Cards, filtros, ítems de carrito
+│   ├── organism/           # NavBar, Footer, Hero, Resumen
+│   └── pages/              # Páginas de la app
+└── tests/
 ```
+
+## Cómo ejecutar
+
+```bash
+npm install
+npm run dev
+```
+
+Scripts útiles:
+
+```bash
+npm run build    # build de producción
+npm run test     # tests en modo watch
+npm run test:run # tests una vez
+npm run lint
+```
+
+## Notas
+
+- El carrito se guarda en `localStorage` bajo la clave `carritoFerreteria`.
+- No hay backend: login y paneles de rol son estáticos/demo.
+- Los precios están en pesos chilenos (CLP).
