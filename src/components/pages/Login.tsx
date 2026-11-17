@@ -1,7 +1,7 @@
 import { useState, type SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { crearNotificacion } from "../../api/notificaciones";
 
-// Cuentas de prueba (sin base de datos), igual que en el sitio original
 const cuentas = [
     { correo: 'admin@maestro.cl',    clave: '1234', ruta: '/admin' },
     { correo: 'vendedor@maestro.cl', clave: '2468', ruta: '/vendedor' },
@@ -9,46 +9,67 @@ const cuentas = [
 ]
 
 function Login(){
-
     const navigate = useNavigate()
-
     const [correo, setCorreo] = useState('')
     const [clave, setClave] = useState('')
     const [verClave, setVerClave] = useState(false)
     const [error, setError] = useState('')
+    const [recuperando, setRecuperando] = useState(false)
+    const [mensaje, setMensaje] = useState('')
 
     const ingresar = (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
+        setError('')
+        setMensaje('')
 
         const correoLimpio = correo.trim()
         const claveLimpia = clave.trim()
 
-        if (correoLimpio === '' || claveLimpia === '') {
+        if (!correoLimpio || !claveLimpia) {
             return setError('Debe completar todos los campos')
         }
-
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
             return setError('Ingrese un correo válido')
         }
-
         if (claveLimpia.length !== 4) {
             return setError('La clave debe tener exactamente 4 caracteres')
         }
 
         const cuenta = cuentas.find(c => c.correo === correoLimpio && c.clave === claveLimpia)
-
         if (!cuenta) {
             return setError('Correo o clave incorrectos')
         }
-
         navigate(cuenta.ruta)
     }
 
-    return(
+    const recuperarClave = async () => {
+        setError('')
+        setMensaje('')
+        const correoLimpio = correo.trim()
+
+        if (!correoLimpio || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
+            return setError('Ingresa un correo válido para recuperar la contraseña')
+        }
+
+        setRecuperando(true)
+        try {
+            await crearNotificacion({
+                email: correoLimpio,
+                tipo: 'RESET_PASSWORD',
+                titulo: 'Recuperación de contraseña',
+                mensaje: `Se solicitó recuperar la contraseña para ${correoLimpio}`
+            })
+            setMensaje('Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña.')
+        } catch {
+            setError('No se pudo enviar la solicitud. Intenta de nuevo.')
+        } finally {
+            setRecuperando(false)
+        }
+    }
+
+    return (
         <main className="container my-5">
-
             <form className="login" onSubmit={ingresar} noValidate>
-
                 <div className="login-brand">
                     <img src="/img/logo1.jpg" alt="Logo Ferretería Los Maestros" />
                     <span>Ferretería Los Maestros</span>
@@ -96,10 +117,19 @@ function Login(){
                 </div>
 
                 {error && <p className="mensaje-error">{error}</p>}
+                {mensaje && <p className="text-success small">{mensaje}</p>}
 
                 <button type="submit" className="btn-ingresar">Ingresar</button>
 
-                <Link className="olvido" to="/contacto">¿Olvidó su contraseña?</Link>
+                <button
+                    type="button"
+                    className="olvido"
+                    onClick={recuperarClave}
+                    disabled={recuperando}
+                    style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', textDecoration: 'underline', display: 'block', margin: '10px auto' }}
+                >
+                    {recuperando ? 'Enviando...' : '¿Olvidó su contraseña?'}
+                </button>
 
                 <p className="ayuda">
                     Cuentas de prueba (sin base de datos):<br />
@@ -109,11 +139,8 @@ function Login(){
                 </p>
 
                 <Link className="volver" to="/">← Volver al inicio</Link>
-
                 <p className="copy">© 2026 Ferretería Los Maestros — La Serena</p>
-
             </form>
-
         </main>
     )
 }
