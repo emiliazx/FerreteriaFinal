@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
+import { crearNotificacion } from "../../api/notificaciones";
 
 type Campo = "nombre" | "email" | "telefono" | "direccion" | "comuna" | "region" | "transportista" | "metodoPago";
 
@@ -37,6 +38,7 @@ function Checkout() {
     const [transportista, setTransportista] = useState<keyof typeof transportistas | "">("");
     const [errores, setErrores] = useState<Partial<Record<Campo, boolean>>>({});
     const [intentado, setIntentado] = useState(false);
+    const [enviando, setEnviando] = useState(false);
     const costoDespacho = transportista ? transportistas[transportista].precio : 0;
 
     const cambiarCampo = (campo: Campo, valor: string) => {
@@ -45,7 +47,7 @@ function Checkout() {
         }
     };
 
-    const enviarPedido = (event: FormEvent<HTMLFormElement>) => {
+    const enviarPedido = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIntentado(true);
         const datos = new FormData(event.currentTarget);
@@ -66,9 +68,24 @@ function Checkout() {
         setErrores(nuevosErrores);
         if (Object.values(nuevosErrores).some(Boolean)) return;
 
-        vaciar();
-        setPedidoRealizado(true);
+        setEnviando(true);
+        try {
+            const total = subtotal + costoDespacho;
+            await crearNotificacion({
+                email: valores.email,
+                tipo: "PEDIDO",
+                titulo: "Pedido recibido",
+                mensaje: `Pedido de ${valores.nombre}. Total: $${total.toLocaleString("es-CL")}. Dirección: ${valores.direccion}, ${valores.comuna}.`
+            });
+            vaciar();
+            setPedidoRealizado(true);
+        } catch (err) {
+            alert("Error al confirmar el pedido. Intenta de nuevo.");
+        } finally {
+            setEnviando(false);
+        }
     };
+
     const hayErrores = Object.values(errores).some(Boolean);
 
     if (pedidoRealizado) {
@@ -209,8 +226,8 @@ function Checkout() {
                             <p className="form-text mb-0">Te redireccionaremos para completar el pago</p>
                         </section>
 
-                        <button type="submit" className="btn btn-naranja w-100 fw-bold py-3">
-                            CONFIRMAR PEDIDO
+                        <button type="submit" className="btn btn-naranja w-100 fw-bold py-3" disabled={enviando}>
+                            {enviando ? "CONFIRMANDO..." : "CONFIRMAR PEDIDO"}
                         </button>
                     </form>
                 </div>
