@@ -1,12 +1,7 @@
 import { useState, type SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { crearNotificacion } from "../../api/notificaciones";
-
-const cuentas = [
-    { correo: 'admin@maestro.cl',    clave: '1234', ruta: '/admin' },
-    { correo: 'vendedor@maestro.cl', clave: '2468', ruta: '/vendedor' },
-    { correo: 'usuario@maestro.cl',  clave: '5678', ruta: '/usuario' },
-]
+import { login as loginApi } from "../../api/auth";
 
 function Login(){
     const navigate = useNavigate()
@@ -16,8 +11,9 @@ function Login(){
     const [error, setError] = useState('')
     const [recuperando, setRecuperando] = useState(false)
     const [mensaje, setMensaje] = useState('')
+    const [cargando, setCargando] = useState(false)
 
-    const ingresar = (e: SubmitEvent<HTMLFormElement>) => {
+    const ingresar = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
         setError('')
         setMensaje('')
@@ -31,15 +27,22 @@ function Login(){
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
             return setError('Ingrese un correo válido')
         }
-        if (claveLimpia.length !== 4) {
-            return setError('La clave debe tener exactamente 4 caracteres')
-        }
 
-        const cuenta = cuentas.find(c => c.correo === correoLimpio && c.clave === claveLimpia)
-        if (!cuenta) {
-            return setError('Correo o clave incorrectos')
+        setCargando(true)
+        try {
+            const user = await loginApi(correoLimpio, claveLimpia)
+            localStorage.setItem('ferreteria_token', user.token)
+            localStorage.setItem('ferreteria_user', JSON.stringify(user))
+            
+            // Redirigir según rol
+            if (user.rol === 'ADMIN') navigate('/admin')
+            else if (user.rol === 'VENDEDOR') navigate('/vendedor')
+            else navigate('/usuario')
+        } catch {
+            setError('Correo o clave incorrectos')
+        } finally {
+            setCargando(false)
         }
-        navigate(cuenta.ruta)
     }
 
     const recuperarClave = async () => {
@@ -100,8 +103,7 @@ function Login(){
                     <input
                         id="clave"
                         type={verClave ? 'text' : 'password'}
-                        maxLength={4}
-                        placeholder="****"
+                        placeholder="******"
                         autoComplete="current-password"
                         value={clave}
                         onChange={e => setClave(e.target.value)}
@@ -119,7 +121,9 @@ function Login(){
                 {error && <p className="mensaje-error">{error}</p>}
                 {mensaje && <p className="text-success small">{mensaje}</p>}
 
-                <button type="submit" className="btn-ingresar">Ingresar</button>
+                <button type="submit" className="btn-ingresar" disabled={cargando}>
+                    {cargando ? 'INGRESANDO...' : 'INGRESAR'}
+                </button>
 
                 <button
                     type="button"
@@ -130,13 +134,6 @@ function Login(){
                 >
                     {recuperando ? 'Enviando...' : '¿Olvidó su contraseña?'}
                 </button>
-
-                <p className="ayuda">
-                    Cuentas de prueba (sin base de datos):<br />
-                    Admin: <b>admin@maestro.cl</b> / <b>1234</b><br />
-                    Usuario: <b>usuario@maestro.cl</b> / <b>5678</b><br />
-                    Vendedor: <b>vendedor@maestro.cl</b> / <b>2468</b>
-                </p>
 
                 <Link className="volver" to="/">← Volver al inicio</Link>
                 <p className="copy">© 2026 Ferretería Los Maestros — La Serena</p>
