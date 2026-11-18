@@ -17,16 +17,14 @@ import Admin from './components/pages/Admin'
 import NoEncontrado from './components/pages/NoEncontrado'
 import { CartProvider, useCart } from './context/CartContext'
 import { AuthProvider } from './context/AuthContext'
-import { CatalogProvider, useCatalog } from './context/CatalogContext'
 
 function AppRoutes() {
   const { totalUnidades } = useCart()
-  const { categorias } = useCatalog()
 
   return (
     <div className="d-flex flex-column min-vh-100">
       <ScrollArriba />
-      <NavBar categorias={categorias} totalUnidades={totalUnidades} />
+      <NavBar categorias={[]} totalUnidades={totalUnidades} />
 
       <div className="flex-grow-1">
         <Routes>
@@ -55,11 +53,9 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <CatalogProvider>
-        <CartProvider>
-          <AppRoutes />
-        </CartProvider>
-      </CatalogProvider>
+      <CartProvider>
+        <AppRoutes />
+      </CartProvider>
     </AuthProvider>
   )
 }
