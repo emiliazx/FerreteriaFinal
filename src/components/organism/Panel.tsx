@@ -1,9 +1,11 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import TarjetaResumen from "../molecules/TarjetaResumen";
 
 interface PanelProps {
     titulo: string;
     descripcion: string;
+    onCerrarSesion?: () => void;
     resumen: { titulo: string; valor: string | number }[];
     tablaTitulo: string;
     columnas: string[];
@@ -13,7 +15,18 @@ interface PanelProps {
 }
 
 
-function Panel({ titulo, descripcion, resumen, tablaTitulo, columnas, filas, accionesTitulo, acciones }: PanelProps) {
+function Panel({ titulo, descripcion, onCerrarSesion, resumen, tablaTitulo, columnas, filas, accionesTitulo, acciones }: PanelProps) {
+    const navigate = useNavigate();
+    const { logout } = useAuth();
+
+    const handleCerrarSesion = () => {
+        if (onCerrarSesion) {
+            onCerrarSesion();
+            return;
+        }
+        logout();
+        navigate("/login", { replace: true });
+    };
 
     return (
         <main className="container my-5">
@@ -31,9 +44,14 @@ function Panel({ titulo, descripcion, resumen, tablaTitulo, columnas, filas, acc
                         <p>{descripcion}</p>
                     </div>
 
-                    <Link className="dashboard-link" to="/login">
+                    <button
+                        type="button"
+                        className="dashboard-link"
+                        onClick={handleCerrarSesion}
+                        style={{ background: "none", border: "none", cursor: "pointer" }}
+                    >
                         Cerrar sesión
-                    </Link>
+                    </button>
 
                 </header>
 

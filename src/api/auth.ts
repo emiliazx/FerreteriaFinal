@@ -58,3 +58,14 @@ export async function resetPassword(
     body: JSON.stringify({ email, newPassword }),
   })
 }
+export interface UsuarioBD {
+  id: number
+  nombre: string
+  email: string
+  rol: string
+  activo: boolean
+}
+
+export async function listarUsuariosBD(): Promise<UsuarioBD[]> {
+  return apiFetch<UsuarioBD[]>('/api/auth/usuarios')
+}
