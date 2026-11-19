@@ -47,4 +47,14 @@ export async function register(payload: {
     nombre: data.nombre,
     rol: data.rol,
   }
+  
+}
+export async function resetPassword(
+  email: string,
+  newPassword: string,
+): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, newPassword }),
+  })
 }
