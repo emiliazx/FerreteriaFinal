@@ -14,24 +14,32 @@ const USER_KEY = 'ferreteria_user'
 type AuthContextValue = {
   user: AuthUser | null
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<void>
+  inicial: string | null
+  login: (email: string, password: string) => Promise<AuthUser>
   register: (data: {
     nombre: string
     email: string
     password: string
-  }) => Promise<void>
+  }) => Promise<AuthUser>
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+function getInicial(u: AuthUser | null): string | null {
+  if (!u) return null
+  const fuente = u.nombre?.trim() || u.email?.trim() || ''
+  return fuente ? fuente[0].toUpperCase() : '?'
+}
 
 function loadUser(): AuthUser | null {
   try {
     const token = localStorage.getItem(TOKEN_KEY)
     const raw = localStorage.getItem(USER_KEY)
     if (!token || !raw) return null
-    const user = JSON.parse(raw) as AuthUser
-    return { ...user, token }
+    const parsed = JSON.parse(raw) as AuthUser
+    if (!parsed?.email && !parsed?.nombre) return null
+    return { ...parsed, token }
   } catch {
     return null
   }
@@ -57,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const u = await apiLogin(email, password)
     persist(u)
     setUser(u)
+    return u
   }, [])
 
   const register = useCallback(
@@ -68,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = await apiRegister(data)
       persist(u)
       setUser(u)
+      return u
     },
     [],
   )
@@ -78,15 +88,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }, [])
 
+  const inicial = useMemo(() => getInicial(user), [user])
+
   const value = useMemo(
     () => ({
       user,
       isAuthenticated: !!user,
+      inicial,
       login,
       register,
       logout,
     }),
-    [user, login, register, logout],
+    [user, inicial, login, register, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

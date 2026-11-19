@@ -11,6 +11,7 @@ import Contacto from './components/pages/Contacto'
 import Gracias from './components/pages/Gracias'
 import QuienesSomos from './components/pages/QuienesSomos'
 import Login from './components/pages/Login'
+import Registro from './components/pages/Registro'
 import Usuario from './components/pages/Usuario'
 import Vendedor from './components/pages/Vendedor'
 import Admin from './components/pages/Admin'
@@ -38,6 +39,7 @@ function AppRoutes() {
           <Route path="/gracias" element={<Gracias />} />
           <Route path="/quienes-somos" element={<QuienesSomos />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
           <Route path="/usuario" element={<Usuario />} />
           <Route path="/vendedor" element={<Vendedor />} />
           <Route path="/admin" element={<Admin />} />
