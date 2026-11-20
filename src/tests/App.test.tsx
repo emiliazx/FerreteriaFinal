@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
 
 describe('navegación y pedido de la ferretería', () => {
@@ -53,6 +53,6 @@ it('abre el detalle de un producto y lo agrega al pedido', async () => {
   		expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeTruthy()
   		expect(screen.getByLabelText('Correo')).toBeTruthy()
   		expect(screen.getByLabelText('Clave', { selector: 'input' })).toBeTruthy()
-  		expect(screen.getByRole('button', { name: 'Ingresar' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^ingresar$/i })).toBeTruthy()
  	})
 })
