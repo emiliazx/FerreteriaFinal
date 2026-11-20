@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 interface NavBarProps {
     categorias: { slug: string; nombreCorto: string }[];
@@ -7,6 +8,8 @@ interface NavBarProps {
 }
 
 function NavBar({ categorias, totalUnidades }: NavBarProps) {
+    const navigate = useNavigate()
+    const { user, isAuthenticated, inicial, logout } = useAuth()
 
     const [menuAbierto, setMenuAbierto] = useState(false)
     const [categoriasAbiertas, setCategoriasAbiertas] = useState(false)
@@ -16,10 +19,23 @@ function NavBar({ categorias, totalUnidades }: NavBarProps) {
         setCategoriasAbiertas(false)
     }
 
+    const handleLogout = () => {
+        cerrarTodo()
+        logout()
+        navigate('/login')
+    }
+
+    const rutaPanel =
+        user?.rol === 'ADMIN'
+            ? '/admin'
+            : user?.rol === 'VENDEDOR'
+              ? '/vendedor'
+              : '/usuario'
+
     const claseLink = ({ isActive }: { isActive: boolean }) =>
         `nav-link${isActive ? ' active' : ''}`
 
-    return(
+    return (
         <nav className="navbar navbar-expand-lg lm-navbar">
 
             <div className="container">
@@ -41,7 +57,7 @@ function NavBar({ categorias, totalUnidades }: NavBarProps) {
 
                 <div className={`collapse navbar-collapse${menuAbierto ? ' show' : ''}`}>
 
-                    <ul className="navbar-nav mx-auto">
+                    <ul className="navbar-nav mx-auto align-items-lg-center">
 
                         <li className="nav-item">
                             <NavLink className={claseLink} to="/" end onClick={cerrarTodo}>
@@ -107,10 +123,39 @@ function NavBar({ categorias, totalUnidades }: NavBarProps) {
                             </NavLink>
                         </li>
 
-                        <li className="nav-item">
-                            <NavLink className={claseLink} to="/login" onClick={cerrarTodo}>
-                                Iniciar sesión
-                            </NavLink>
+                        <li className="nav-item ms-lg-2">
+                            {isAuthenticated && user ? (
+                                <div className="d-flex align-items-center gap-2">
+                                    <Link
+                                        to={rutaPanel}
+                                        onClick={cerrarTodo}
+                                        title={`${user.nombre || user.email} — Ir a mi cuenta`}
+                                        className="d-inline-flex align-items-center justify-content-center text-white fw-bold text-decoration-none"
+                                        style={{
+                                            width: '34px',
+                                            height: '34px',
+                                            borderRadius: '50%',
+                                            backgroundColor: '#222',
+                                            border: '2px solid #fff',
+                                            fontSize: '0.9rem',
+                                        }}
+                                    >
+                                        {inicial ?? '?'}
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="btn btn-sm btn-outline-light py-0 px-2"
+                                        style={{ fontSize: '0.78rem' }}
+                                    >
+                                        Salir
+                                    </button>
+                                </div>
+                            ) : (
+                                <NavLink className={claseLink} to="/login" onClick={cerrarTodo}>
+                                    Iniciar sesión
+                                </NavLink>
+                            )}
                         </li>
 
                     </ul>
@@ -121,7 +166,6 @@ function NavBar({ categorias, totalUnidades }: NavBarProps) {
 
         </nav>
     )
-
 }
 
 export default NavBar

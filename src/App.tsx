@@ -1,56 +1,65 @@
-import { useEffect, useState } from 'react'
-import './App.css'
+import { Routes, Route } from 'react-router-dom'
+import NavBar from './components/organism/NavBar'
+import Footer from './components/organism/Footer'
+import ScrollArriba from './components/organism/Cambios'
+import Inicio from './components/pages/Inicio'
+import Productos from './components/pages/Productos'
+import Detalleproducto from './components/pages/DetalleProducto'
+import Carrito from './components/pages/Carrito'
+import Checkout from './components/pages/Checkout'
+import Contacto from './components/pages/Contacto'
+import Gracias from './components/pages/Gracias'
+import QuienesSomos from './components/pages/QuienesSomos'
+import Login from './components/pages/Login'
+import Registro from './components/pages/Registro'
+import Usuario from './components/pages/Usuario'
+import Vendedor from './components/pages/Vendedor'
+import Admin from './components/pages/Admin'
+import NoEncontrado from './components/pages/NoEncontrado'
 import { CartProvider, useCart } from './context/CartContext'
-import { catalogSections, getProductId } from './data/catalog'
-import { CartPage } from './pages/CartPage'
-import { CatalogPage } from './pages/CatalogPage'
-import { ContactPage } from './pages/ContactPage'
-import { HomePage } from './pages/HomePage'
-import { LoginPage } from './pages/LoginPage'
-import { ProductDetailsPage } from './pages/ProductoDetallesPago'
-import { ThankYouPage } from './pages/ExitosoPago'
+import { AuthProvider } from './context/AuthContext'
 
-function AppContent() {
-  const [hash, setHash] = useState(window.location.hash)
-  const { cartItems, cartCount, addToCart, changeQuantity, removeFromCart, clearCart } = useCart()
+function AppRoutes() {
+  const { totalUnidades } = useCart()
 
-  useEffect(() => {
-    const updateHash = () => setHash(window.location.hash)
-    window.addEventListener('hashchange', updateHash)
-    return () => window.removeEventListener('hashchange', updateHash)
-  }, [])
-
-  const [page, routeId] = hash.replace(/^#\/?/, '').split('/')
-  if (page === 'catalogo') return <CatalogPage categoryId={routeId} cartCount={cartCount} onAdd={addToCart} />
-
-  if (page === 'producto' && routeId) {
-    const section = catalogSections.find((entry) => entry.products.some((product) => getProductId(product.name) === routeId))
-    const product = section?.products.find((entry) => getProductId(entry.name) === routeId)
-    if (section && product) return <ProductDetailsPage product={product} categoryId={section.id} cartCount={cartCount} onAdd={addToCart} />
-    return <CatalogPage cartCount={cartCount} onAdd={addToCart} />
-  }
-
-  if (page === 'carrito') {
-    return <CartPage
-      items={cartItems}
-      cartCount={cartCount}
-      onIncrease={(name) => changeQuantity(name, 1)}
-      onDecrease={(name) => changeQuantity(name, -1)}
-      onRemove={removeFromCart}
-      onClear={clearCart}
-    />
-  }
-
-  if (page === 'contacto') return <ContactPage cartCount={cartCount} />
-  if (page === 'login') return <LoginPage cartCount={cartCount} />
-  if (page === 'gracias') return <ThankYouPage cartCount={cartCount} />
-  return <HomePage cartCount={cartCount} onAdd={addToCart} />
-}
-
-export default function App() {
   return (
-    <CartProvider>
-      <AppContent />
-    </CartProvider>
+    <div className="d-flex flex-column min-vh-100">
+      <ScrollArriba />
+      <NavBar categorias={[]} totalUnidades={totalUnidades} />
+
+      <div className="flex-grow-1">
+        <Routes>
+          <Route path="/" element={<Inicio />} />
+          <Route path="/productos" element={<Productos />} />
+          <Route path="/categoria/:slug" element={<Productos />} />
+          <Route path="/productos/:id" element={<Detalleproducto />} />
+          <Route path="/carrito" element={<Carrito />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/contacto" element={<Contacto />} />
+          <Route path="/gracias" element={<Gracias />} />
+          <Route path="/quienes-somos" element={<QuienesSomos />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
+          <Route path="/usuario" element={<Usuario />} />
+          <Route path="/vendedor" element={<Vendedor />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="*" element={<NoEncontrado />} />
+        </Routes>
+      </div>
+
+      <Footer />
+    </div>
   )
 }
+
+function App() {
+  return (
+    <AuthProvider>
+      <CartProvider>
+        <AppRoutes />
+      </CartProvider>
+    </AuthProvider>
+  )
+}
+
+export default App

@@ -1,119 +1,245 @@
 import { useState, type SubmitEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
-// Cuentas de prueba (sin base de datos), igual que en el sitio original
-const cuentas = [
-    { correo: 'admin@maestro.cl',    clave: '1234', ruta: '/admin' },
-    { correo: 'vendedor@maestro.cl', clave: '2468', ruta: '/vendedor' },
-    { correo: 'usuario@maestro.cl',  clave: '5678', ruta: '/usuario' },
-]
+import { crearNotificacion } from "../../api/notificaciones";
+import { resetPassword } from "../../api/auth";
+import { useAuth } from "../../context/AuthContext";
 
 function Login(){
-
     const navigate = useNavigate()
-
+    const { login } = useAuth()
     const [correo, setCorreo] = useState('')
     const [clave, setClave] = useState('')
     const [verClave, setVerClave] = useState(false)
     const [error, setError] = useState('')
+    const [mensaje, setMensaje] = useState('')
+    const [cargando, setCargando] = useState(false)
 
-    const ingresar = (e: SubmitEvent<HTMLFormElement>) => {
+    // Modo recuperación
+    const [modoRecuperar, setModoRecuperar] = useState(false)
+    const [nuevaClave, setNuevaClave] = useState('')
+    const [confirmarNuevaClave, setConfirmarNuevaClave] = useState('')
+
+    const ingresar = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
+        setError('')
+        setMensaje('')
 
         const correoLimpio = correo.trim()
         const claveLimpia = clave.trim()
 
-        if (correoLimpio === '' || claveLimpia === '') {
+        if (!correoLimpio || !claveLimpia) {
             return setError('Debe completar todos los campos')
         }
-
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
             return setError('Ingrese un correo válido')
         }
 
-        if (claveLimpia.length !== 4) {
-            return setError('La clave debe tener exactamente 4 caracteres')
+        setCargando(true)
+        try {
+            const user = await login(correoLimpio, claveLimpia)
+
+            if (user.rol === 'ADMIN') navigate('/admin')
+            else if (user.rol === 'VENDEDOR') navigate('/vendedor')
+            else navigate('/usuario')
+        } catch {
+            setError('Correo o clave incorrectos')
+        } finally {
+            setCargando(false)
         }
-
-        const cuenta = cuentas.find(c => c.correo === correoLimpio && c.clave === claveLimpia)
-
-        if (!cuenta) {
-            return setError('Correo o clave incorrectos')
-        }
-
-        navigate(cuenta.ruta)
     }
 
-    return(
+    const handleRecuperarClave = async (e: SubmitEvent<HTMLFormElement>) => {
+        e.preventDefault()
+        setError('')
+        setMensaje('')
+
+        const correoLimpio = correo.trim()
+        const nuevaLimpia = nuevaClave.trim()
+
+        if (!correoLimpio || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLimpio)) {
+            return setError('Ingresa un correo válido')
+        }
+        if (nuevaLimpia.length < 6) {
+            return setError('La nueva contraseña debe tener al menos 6 caracteres')
+        }
+        if (nuevaLimpia !== confirmarNuevaClave.trim()) {
+            return setError('Las contraseñas no coinciden')
+        }
+
+        setCargando(true)
+        try {
+            await resetPassword(correoLimpio, nuevaLimpia)
+
+            // Registrar notificación (no bloquea si notificaciones está sin Resend)
+            crearNotificacion({
+                email: correoLimpio,
+                tipo: 'RESET_PASSWORD',
+                titulo: 'Contraseña restablecida',
+                mensaje: `Se actualizó la contraseña de la cuenta ${correoLimpio}`
+            }).catch(() => {})
+
+            setMensaje('¡Contraseña actualizada! Ya puedes iniciar sesión con tu nueva clave.')
+            setClave('')
+            setNuevaClave('')
+            setConfirmarNuevaClave('')
+            setModoRecuperar(false)
+        } catch (err: any) {
+            setError(err?.message || 'No se pudo actualizar la contraseña. Verifica el correo ingresado.')
+        } finally {
+            setCargando(false)
+        }
+    }
+
+    return (
         <main className="container my-5">
+            {!modoRecuperar ? (
+                <form className="login" onSubmit={ingresar} noValidate>
+                    <div className="login-brand">
+                        <img src="/img/logo1.jpg" alt="Logo Ferretería Los Maestros" />
+                        <span>Ferretería Los Maestros</span>
+                        <small>Tu aliado en construcción desde 2004</small>
+                    </div>
 
-            <form className="login" onSubmit={ingresar} noValidate>
+                    <h1>Iniciar sesión</h1>
 
-                <div className="login-brand">
-                    <img src="/img/logo1.jpg" alt="Logo Ferretería Los Maestros" />
-                    <span>Ferretería Los Maestros</span>
-                    <small>Tu aliado en construcción desde 2004</small>
-                </div>
+                    <ul className="beneficios">
+                        <li>Consulta el stock en tiempo real</li>
+                        <li>Revisa el historial de tus pedidos</li>
+                        <li>Guarda cotizaciones sin compromiso</li>
+                        <li>Coordina despachos a tu obra</li>
+                    </ul>
 
-                <h1>Iniciar sesión</h1>
-
-                <ul className="beneficios">
-                    <li>Consulta el stock en tiempo real</li>
-                    <li>Revisa el historial de tus pedidos</li>
-                    <li>Guarda cotizaciones sin compromiso</li>
-                    <li>Coordina despachos a tu obra</li>
-                </ul>
-
-                <label htmlFor="correo">Correo</label>
-                <input
-                    id="correo"
-                    type="email"
-                    placeholder="tu@correo.cl"
-                    autoComplete="username"
-                    value={correo}
-                    onChange={e => setCorreo(e.target.value)}
-                />
-
-                <label htmlFor="clave">Clave</label>
-                <div className="clave-wrap">
+                    <label htmlFor="correo">Correo</label>
                     <input
-                        id="clave"
-                        type={verClave ? 'text' : 'password'}
-                        maxLength={4}
-                        placeholder="****"
-                        autoComplete="current-password"
-                        value={clave}
-                        onChange={e => setClave(e.target.value)}
+                        id="correo"
+                        type="email"
+                        placeholder="tu@correo.cl"
+                        autoComplete="username"
+                        value={correo}
+                        onChange={e => setCorreo(e.target.value)}
                     />
+
+                    <label htmlFor="clave">Clave</label>
+                    <div className="clave-wrap">
+                        <input
+                            id="clave"
+                            type={verClave ? 'text' : 'password'}
+                            placeholder="******"
+                            autoComplete="current-password"
+                            value={clave}
+                            onChange={e => setClave(e.target.value)}
+                        />
+                        <button
+                            type="button"
+                            className="ver-clave"
+                            onClick={() => setVerClave(!verClave)}
+                            aria-label={verClave ? 'Ocultar clave' : 'Mostrar clave'}
+                        >
+                            👁
+                        </button>
+                    </div>
+
+                    {error && <p className="mensaje-error">{error}</p>}
+                    {mensaje && <p className="text-success small">{mensaje}</p>}
+
+                    <button type="submit" className="btn-ingresar" disabled={cargando}>
+                        {cargando ? 'INGRESANDO...' : 'INGRESAR'}
+                    </button>
+
                     <button
                         type="button"
-                        className="ver-clave"
-                        onClick={() => setVerClave(!verClave)}
-                        aria-label={verClave ? 'Ocultar clave' : 'Mostrar clave'}
+                        className="olvido"
+                        onClick={() => {
+                            setError('')
+                            setMensaje('')
+                            setModoRecuperar(true)
+                        }}
+                        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', textDecoration: 'underline', display: 'block', margin: '10px auto' }}
                     >
-                        👁
+                        ¿Olvidó su contraseña?
                     </button>
-                </div>
 
-                {error && <p className="mensaje-error">{error}</p>}
+                    <p className="text-center small my-2">
+                        ¿No tienes cuenta?{' '}
+                        <Link to="/registro" className="volver" style={{ display: 'inline', margin: 0, fontWeight: 600 }}>
+                            Crear cuenta
+                        </Link>
+                    </p>
 
-                <button type="submit" className="btn-ingresar">Ingresar</button>
+                    <Link className="volver" to="/">← Volver al inicio</Link>
+                    <p className="copy">© 2026 Ferretería Los Maestros — La Serena</p>
+                </form>
+            ) : (
+                <form className="login" onSubmit={handleRecuperarClave} noValidate>
+                    <div className="login-brand">
+                        <img src="/img/logo1.jpg" alt="Logo Ferretería Los Maestros" />
+                        <span>Ferretería Los Maestros</span>
+                        <small>Tu aliado en construcción desde 2004</small>
+                    </div>
 
-                <Link className="olvido" to="/contacto">¿Olvidó su contraseña?</Link>
+                    <h1>Recuperar contraseña</h1>
+                    <p className="small text-muted text-center">
+                        Ingresa el correo de tu cuenta (Cliente, Vendedor o Admin) y define una nueva clave.
+                    </p>
 
-                <p className="ayuda">
-                    Cuentas de prueba (sin base de datos):<br />
-                    Admin: <b>admin@maestro.cl</b> / <b>1234</b><br />
-                    Usuario: <b>usuario@maestro.cl</b> / <b>5678</b><br />
-                    Vendedor: <b>vendedor@maestro.cl</b> / <b>2468</b>
-                </p>
+                    <label htmlFor="correoRecuperar">Correo registrado</label>
+                    <input
+                        id="correoRecuperar"
+                        type="email"
+                        placeholder="tu@correo.cl"
+                        value={correo}
+                        onChange={e => setCorreo(e.target.value)}
+                    />
 
-                <Link className="volver" to="/">← Volver al inicio</Link>
+                    <label htmlFor="nuevaClave">Nueva contraseña</label>
+                    <div className="clave-wrap">
+                        <input
+                            id="nuevaClave"
+                            type={verClave ? 'text' : 'password'}
+                            placeholder="Mínimo 6 caracteres"
+                            value={nuevaClave}
+                            onChange={e => setNuevaClave(e.target.value)}
+                        />
+                        <button
+                            type="button"
+                            className="ver-clave"
+                            onClick={() => setVerClave(!verClave)}
+                            aria-label={verClave ? 'Ocultar clave' : 'Mostrar clave'}
+                        >
+                            👁
+                        </button>
+                    </div>
 
-                <p className="copy">© 2026 Ferretería Los Maestros — La Serena</p>
+                    <label htmlFor="confirmarNuevaClave">Confirmar nueva contraseña</label>
+                    <input
+                        id="confirmarNuevaClave"
+                        type={verClave ? 'text' : 'password'}
+                        placeholder="Repite la nueva clave"
+                        value={confirmarNuevaClave}
+                        onChange={e => setConfirmarNuevaClave(e.target.value)}
+                    />
 
-            </form>
+                    {error && <p className="mensaje-error">{error}</p>}
 
+                    <button type="submit" className="btn-ingresar" disabled={cargando}>
+                        {cargando ? 'ACTUALIZANDO...' : 'CAMBIAR CONTRASEÑA'}
+                    </button>
+
+                    <button
+                        type="button"
+                        className="olvido"
+                        onClick={() => {
+                            setError('')
+                            setModoRecuperar(false)
+                        }}
+                        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', textDecoration: 'underline', display: 'block', margin: '10px auto' }}
+                    >
+                        Volver a iniciar sesión
+                    </button>
+
+                    <p className="copy">© 2026 Ferretería Los Maestros — La Serena</p>
+                </form>
+            )}
         </main>
     )
 }

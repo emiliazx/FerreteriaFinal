@@ -1,5 +1,6 @@
 import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { enviarMensajeContacto } from "../../api/contacto";
 
 type Campo = 'nombre' | 'telefono' | 'email' | 'mensaje'
 
@@ -26,22 +27,21 @@ function Contacto(){
     })
     const [errores, setErrores] = useState<Partial<Record<Campo, boolean>>>({})
     const [intentado, setIntentado] = useState(false)
+    const [enviando, setEnviando] = useState(false)
+    const [errorEnvio, setErrorEnvio] = useState('')
 
     const cambiar = (campo: Campo, valor: string) => {
         setValores(v => ({ ...v, [campo]: valor }))
-        // Una vez que se intentó enviar, se revalida en vivo
+        if (errorEnvio) setErrorEnvio('')
         if (intentado) {
             setErrores(e => ({ ...e, [campo]: !validadores[campo](valor) }))
         }
     }
 
-    const enviar = (e: SubmitEvent<HTMLFormElement>) => {
+    const enviar = async (e: SubmitEvent<HTMLFormElement>) => {
         e.preventDefault()
         setIntentado(true)
-
-        if (!valores.email.trim()) {
-            window.alert('Debe ingresar su correo electrónico')
-        }
+        setErrorEnvio('')
 
         const nuevos: Partial<Record<Campo, boolean>> = {}
         let valido = true
@@ -54,8 +54,21 @@ function Contacto(){
 
         setErrores(nuevos)
 
-        if (valido) {
+        if (!valido) return
+
+        setEnviando(true)
+        try {
+            await enviarMensajeContacto({
+                nombre: valores.nombre.trim(),
+                telefono: valores.telefono.trim(),
+                email: valores.email.trim(),
+                mensaje: valores.mensaje.trim(),
+            })
             navigate('/gracias')
+        } catch (err: any) {
+            setErrorEnvio(err?.message || 'Error al enviar el mensaje. Intenta de nuevo.')
+        } finally {
+            setEnviando(false)
         }
     }
 
@@ -88,6 +101,12 @@ function Contacto(){
                         {hayErrores && (
                             <div className="alert alert-danger py-2 px-3 small" role="alert">
                                 ⚠ Revisa los campos marcados en rojo antes de enviar.
+                            </div>
+                        )}
+
+                        {errorEnvio && (
+                            <div className="alert alert-danger py-2 px-3 small" role="alert">
+                                {errorEnvio}
                             </div>
                         )}
 
@@ -149,8 +168,8 @@ function Contacto(){
                             Revisaremos tu consulta y te responderemos con la información que necesitas.
                         </p>
 
-                        <button type="submit" className="btn btn-naranja w-100 py-3 fw-bold">
-                            ENVIAR
+                        <button type="submit" className="btn btn-naranja w-100 py-3 fw-bold" disabled={enviando}>
+                            {enviando ? 'ENVIANDO...' : 'ENVIAR'}
                         </button>
 
                         </form>

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface ResumenOrdenProps {
     subtotal: number;
@@ -6,6 +6,7 @@ interface ResumenOrdenProps {
 }
 
 function ResumenOrden({ subtotal, hayItems }: ResumenOrdenProps) {
+    const navigate = useNavigate();
 
     return (
         <div className="card shadow-sm p-4 border-0 resumen-orden">
@@ -33,6 +34,7 @@ function ResumenOrden({ subtotal, hayItems }: ResumenOrdenProps) {
                 type="button"
                 className="btn btn-naranja w-100 fw-bold py-2 mb-2"
                 disabled={!hayItems}
+                onClick={() => navigate("/checkout")}
             >
                 Ir a Pagar
             </button>
