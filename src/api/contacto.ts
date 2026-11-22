@@ -1,5 +1,12 @@
 import { apiFetch } from './client'
 
+export interface MensajeContactoHilo {
+  id: number
+  remitente: 'CLIENTE' | 'ADMIN' | string
+  texto: string
+  createdAt?: string
+}
+
 export interface MensajeContacto {
   id: number
   nombre: string
@@ -10,6 +17,7 @@ export interface MensajeContacto {
   estado: 'PENDIENTE' | 'RESPONDIDO' | string
   createdAt?: string
   respondidoAt?: string | null
+  hilo?: MensajeContactoHilo[]
 }
 
 export interface CrearContactoPayload {
@@ -31,6 +39,14 @@ const MENSAJES_INICIALES: MensajeContacto[] = [
     respuesta: null,
     estado: 'PENDIENTE',
     createdAt: new Date().toISOString(),
+    hilo: [
+      {
+        id: 1,
+        remitente: 'CLIENTE',
+        texto: 'Hola, ¿tienen disponibilidad de taladro percutor inalámbrico y brocas para hormigón?',
+        createdAt: new Date().toISOString(),
+      },
+    ],
   },
 ]
 
@@ -68,6 +84,7 @@ export async function enviarMensajeContacto(
     guardarLocal([creado, ...actual.filter(m => m.id !== creado.id)])
     return creado
   } catch {
+    const ahora = new Date().toISOString()
     const actual = leerLocal()
     const nuevo: MensajeContacto = {
       id: Date.now(),
@@ -77,7 +94,8 @@ export async function enviarMensajeContacto(
       mensaje: payload.mensaje,
       respuesta: null,
       estado: 'PENDIENTE',
-      createdAt: new Date().toISOString(),
+      createdAt: ahora,
+      hilo: [{ id: Date.now() + 1, remitente: 'CLIENTE', texto: payload.mensaje, createdAt: ahora }],
     }
     guardarLocal([nuevo, ...actual])
     return nuevo
@@ -117,11 +135,54 @@ export async function responderMensajeContacto(
     let actualizado: MensajeContacto | null = null
     const lista = leerLocal().map(m => {
       if (m.id === id) {
+        const hiloPrevio = m.hilo ?? []
         actualizado = {
           ...m,
           respuesta,
           estado: 'RESPONDIDO',
           respondidoAt: ahora,
+          hilo: [...hiloPrevio, { id: Date.now(), remitente: 'ADMIN', texto: respuesta, createdAt: ahora }],
+        }
+        return actualizado
+      }
+      return m
+    })
+    guardarLocal(lista)
+    if (!actualizado) {
+      throw new Error('Mensaje no encontrado')
+    }
+    return actualizado
+  }
+}
+
+export async function enviarMensajeHilo(
+  id: number,
+  remitente: 'CLIENTE' | 'ADMIN',
+  texto: string,
+): Promise<MensajeContacto> {
+  try {
+    const actualizado = await apiFetch<MensajeContacto>(
+      `/api/notificaciones/contacto/${id}/mensajes`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ remitente, texto }),
+      },
+    )
+    const lista = leerLocal().map(m => (m.id === id ? actualizado : m))
+    guardarLocal(lista)
+    return actualizado
+  } catch {
+    const ahora = new Date().toISOString()
+    let actualizado: MensajeContacto | null = null
+    const lista = leerLocal().map(m => {
+      if (m.id === id) {
+        const hiloPrevio = m.hilo ?? []
+        actualizado = {
+          ...m,
+          respuesta: remitente === 'ADMIN' ? texto : m.respuesta,
+          estado: remitente === 'ADMIN' ? 'RESPONDIDO' : 'PENDIENTE',
+          respondidoAt: remitente === 'ADMIN' ? ahora : m.respondidoAt,
+          hilo: [...hiloPrevio, { id: Date.now(), remitente, texto, createdAt: ahora }],
         }
         return actualizado
       }

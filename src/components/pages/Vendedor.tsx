@@ -1,138 +1,206 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import Estado from "../atoms/Estado"
 import Panel from "../organism/Panel"
+import {
+  listarTodasLasOrdenes,
+  actualizarEstadoOrden,
+  type OrdenResponse,
+} from "../../api/pedidos"
 
-type EstadoPedido = "Por preparar" | "En despacho" | "Listo para retirar" | "Entregado"
+const ESTADOS = ["PENDIENTE", "PAGADO", "ENVIADO", "ENTREGADO", "CANCELADO"] as const
 
-interface PedidoVendedor {
-  id: string
-  cliente: string
-  monto: number
-  estado: EstadoPedido
+function formatCLP(valor: number): string {
+  return `$${Number(valor).toLocaleString("es-CL")}`
 }
 
-const STORAGE_PEDIDOS_KEY = "ferreteria_pedidos_vendedor"
-
-const PEDIDOS_INICIALES: PedidoVendedor[] = [
-  { id: "#FM-1051", cliente: "Constructora Norte", monto: 156900, estado: "Por preparar" },
-  { id: "#FM-1048", cliente: "Juan Pérez", monto: 85990, estado: "En despacho" },
-  { id: "#FM-1044", cliente: "Obras La Serena", monto: 213700, estado: "Listo para retirar" },
-]
-
-function leerPedidosLocales(): PedidoVendedor[] {
+function formatFecha(iso?: string): string {
+  if (!iso) return "—"
   try {
-    const raw = localStorage.getItem(STORAGE_PEDIDOS_KEY)
-    if (!raw) {
-      localStorage.setItem(STORAGE_PEDIDOS_KEY, JSON.stringify(PEDIDOS_INICIALES))
-      return PEDIDOS_INICIALES
-    }
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : PEDIDOS_INICIALES
+    return new Date(iso).toLocaleDateString("es-CL")
   } catch {
-    return PEDIDOS_INICIALES
+    return iso
   }
 }
 
-function formatCLP(valor: number): string {
-  return `$${valor.toLocaleString("es-CL")}`
+function etiquetaEstado(estado: string): string {
+  const map: Record<string, string> = {
+    PENDIENTE: "Pendiente",
+    PAGADO: "Pagado",
+    ENVIADO: "En despacho",
+    ENTREGADO: "Entregado",
+    CANCELADO: "Cancelado",
+  }
+  return map[estado?.toUpperCase()] ?? estado
 }
 
 function Vendedor() {
   const navigate = useNavigate()
   const { logout } = useAuth()
 
-  const [pedidos, setPedidos] = useState<PedidoVendedor[]>(() => leerPedidosLocales())
+  const [ordenes, setOrdenes] = useState<OrdenResponse[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
+  const [actualizandoId, setActualizandoId] = useState<number | null>(null)
+
+  const cargar = async () => {
+    setCargando(true)
+    setError(null)
+    try {
+      const data = await listarTodasLasOrdenes()
+      setOrdenes(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudieron cargar los pedidos")
+      setOrdenes([])
+    } finally {
+      setCargando(false)
+    }
+  }
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_PEDIDOS_KEY, JSON.stringify(pedidos))
-    } catch {
-      /* ignorar */
-    }
-  }, [pedidos])
+    void cargar()
+  }, [])
 
   const handleCerrarSesion = () => {
     logout()
     navigate("/login", { replace: true })
   }
 
-  const cambiarEstadoPedido = (id: string, nuevoEstado: EstadoPedido) => {
-    setPedidos(prev =>
-      prev.map(p => (p.id === id ? { ...p, estado: nuevoEstado } : p)),
-    )
-    setAviso(`Pedido ${id} actualizado a "${nuevoEstado}".`)
+  const cambiarEstado = async (id: number, estado: string) => {
+    setActualizandoId(id)
+    setAviso(null)
+    try {
+      const actualizada = await actualizarEstadoOrden(id, estado)
+      setOrdenes((prev) => prev.map((o) => (o.id === id ? actualizada : o)))
+      setAviso(`Pedido #${id} actualizado a "${etiquetaEstado(estado)}".`)
+    } catch (err) {
+      setAviso(err instanceof Error ? err.message : "Error al actualizar estado")
+    } finally {
+      setActualizandoId(null)
+    }
   }
 
-  const pedidosPendientes = pedidos.filter(p => p.estado !== "Entregado").length
-  const totalVentas = pedidos.reduce((acc, p) => acc + p.monto, 0)
+  const pendientes = ordenes.filter((o) => o.estado !== "ENTREGADO" && o.estado !== "CANCELADO").length
+  const ventas = useMemo(
+    () =>
+      ordenes
+        .filter((o) => ["PAGADO", "ENVIADO", "ENTREGADO"].includes(o.estado))
+        .reduce((acc, o) => acc + Number(o.total), 0),
+    [ordenes],
+  )
+
+  const topProductos = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const o of ordenes) {
+      for (const it of o.items ?? []) {
+        map.set(it.titulo, (map.get(it.titulo) ?? 0) + it.cantidad)
+      }
+    }
+    return [...map.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+  }, [ordenes])
 
   return (
     <>
       <Panel
         titulo="Panel de vendedor / empleado"
-        descripcion="Actualiza el inventario y controla el estado de los pedidos."
+        descripcion="Gestiona pedidos reales y el estado de despacho."
         onCerrarSesion={handleCerrarSesion}
         resumen={[
-          { titulo: "Pedidos pendientes", valor: pedidosPendientes },
-          { titulo: "Productos con bajo stock", valor: 14 },
-          { titulo: "Ventas del día", valor: formatCLP(totalVentas) },
+          { titulo: "Pedidos activos", valor: pendientes },
+          { titulo: "Total pedidos", valor: ordenes.length },
+          { titulo: "Ventas (pagadas+)", valor: formatCLP(ventas) },
         ]}
         tablaTitulo="Pedidos por gestionar"
         columnas={["Pedido", "Cliente", "Total", "Estado"]}
-        filas={pedidos.map(p => [
-          p.id,
-          p.cliente,
-          formatCLP(p.monto),
-          <Estado key={p.id} texto={p.estado} />,
-        ])}
+        filas={
+          ordenes.length > 0
+            ? ordenes.map((o) => [
+                `#${o.id}`,
+                o.nombreCliente,
+                formatCLP(Number(o.total)),
+                <Estado key={o.id} texto={etiquetaEstado(o.estado)} />,
+              ])
+            : [[cargando ? "Cargando..." : "Sin pedidos", "—", "—", <Estado key="e" texto="—" />]]
+        }
         accionesTitulo="Acciones de vendedor"
         acciones={[
-          { texto: "Actualizar inventario", to: "/productos" },
-          { texto: "Revisar pedidos", to: "/vendedor" },
+          { texto: "Ver catálogo", to: "/productos" },
           { texto: "Contactar cliente", to: "/contacto", secundaria: true },
         ]}
       />
 
       <main className="container mb-5">
         <div className="dashboard">
-          <section className="dashboard-section">
-            <h2 className="mb-3">Gestionar estado de pedidos</h2>
+          {error && <p className="text-danger small">{error}</p>}
+          {aviso && <p className="text-success small fw-semibold">{aviso}</p>}
 
-            {aviso && (
-              <p className="text-success small fw-semibold mb-3">{aviso}</p>
-            )}
+          <section className="dashboard-section mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h2 className="m-0">Gestionar estado de pedidos</h2>
+              <button type="button" className="dashboard-button" onClick={() => void cargar()}>
+                Actualizar
+              </button>
+            </div>
 
             <div className="d-flex flex-column gap-2">
-              {pedidos.map(p => (
+              {ordenes.map((o) => (
                 <div
-                  key={p.id}
+                  key={o.id}
                   className="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 border rounded bg-white"
                   style={{ borderColor: "#e5e7eb" }}
                 >
                   <div>
-                    <strong>{p.id}</strong> — {p.cliente}{" "}
-                    <span className="text-muted small">({formatCLP(p.monto)})</span>
+                    <strong>#{o.id}</strong> — {o.nombreCliente}{" "}
+                    <span className="text-muted small">
+                      ({formatCLP(Number(o.total))} · {formatFecha(o.createdAt)})
+                    </span>
+                    <div className="text-muted small">
+                      {o.direccion}
+                      {o.comuna ? `, ${o.comuna}` : ""}
+                    </div>
                   </div>
 
                   <select
-                    aria-label={`Estado del pedido ${p.id}`}
                     className="form-select w-auto"
-                    value={p.estado}
-                    onChange={e =>
-                      cambiarEstadoPedido(p.id, e.target.value as EstadoPedido)
-                    }
+                    value={o.estado}
+                    disabled={actualizandoId === o.id}
+                    onChange={(e) => void cambiarEstado(o.id, e.target.value)}
                   >
-                    <option value="Por preparar">Por preparar</option>
-                    <option value="En despacho">En despacho</option>
-                    <option value="Listo para retirar">Listo para retirar</option>
-                    <option value="Entregado">Entregado</option>
+                    {ESTADOS.map((e) => (
+                      <option key={e} value={e}>
+                        {etiquetaEstado(e)}
+                      </option>
+                    ))}
                   </select>
                 </div>
               ))}
+              {!cargando && ordenes.length === 0 && (
+                <p className="text-muted">No hay pedidos todavía.</p>
+              )}
             </div>
+          </section>
+
+          <section className="dashboard-section">
+            <h2 className="mb-3">Productos más vendidos (desde órdenes)</h2>
+            {topProductos.length === 0 ? (
+              <p className="text-muted">Aún no hay ventas registradas.</p>
+            ) : (
+              <ul className="list-group">
+                {topProductos.map(([titulo, cant]) => (
+                  <li
+                    key={titulo}
+                    className="list-group-item d-flex justify-content-between"
+                  >
+                    <span>{titulo}</span>
+                    <strong>{cant} uds.</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </div>
       </main>
