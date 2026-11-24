@@ -3,11 +3,18 @@ import { useNavigate } from "react-router-dom"
 import { useAuth } from "../../context/AuthContext"
 import Estado from "../atoms/Estado"
 import Panel from "../organism/Panel"
+import GestionProductos from "./GestionProductos"
 import {
   listarTodasLasOrdenes,
   actualizarEstadoOrden,
   type OrdenResponse,
 } from "../../api/pedidos"
+import {
+  listarMensajesContacto,
+  enviarMensajeHilo,
+  type MensajeContacto,
+  type MensajeContactoHilo,
+} from "../../api/contacto"
 
 const ESTADOS = ["PENDIENTE", "PAGADO", "ENVIADO", "ENTREGADO", "CANCELADO"] as const
 
@@ -35,6 +42,29 @@ function etiquetaEstado(estado: string): string {
   return map[estado?.toUpperCase()] ?? estado
 }
 
+function obtenerTurnosDesdeBD(m: MensajeContacto): MensajeContactoHilo[] {
+  if (Array.isArray(m.hilo) && m.hilo.length > 0) {
+    return m.hilo
+  }
+  const fallback: MensajeContactoHilo[] = [
+    {
+      id: 1,
+      remitente: "CLIENTE",
+      texto: m.mensaje,
+      createdAt: m.createdAt,
+    },
+  ]
+  if (m.respuesta) {
+    fallback.push({
+      id: 2,
+      remitente: "ADMIN",
+      texto: m.respuesta,
+      createdAt: m.respondidoAt ?? undefined,
+    })
+  }
+  return fallback
+}
+
 function Vendedor() {
   const navigate = useNavigate()
   const { logout } = useAuth()
@@ -44,6 +74,12 @@ function Vendedor() {
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [actualizandoId, setActualizandoId] = useState<number | null>(null)
+
+  const [mensajes, setMensajes] = useState<MensajeContacto[]>([])
+  const [respuestasDraft, setRespuestasDraft] = useState<Record<number, string>>({})
+  const [cargandoMensajes, setCargandoMensajes] = useState(true)
+  const [enviandoId, setEnviandoId] = useState<number | null>(null)
+  const [feedbackMensajes, setFeedbackMensajes] = useState<{ tipo: "ok" | "err"; texto: string } | null>(null)
 
   const cargar = async () => {
     setCargando(true)
@@ -59,8 +95,24 @@ function Vendedor() {
     }
   }
 
+  const cargarMensajes = async () => {
+    setCargandoMensajes(true)
+    try {
+      const data = await listarMensajesContacto()
+      setMensajes(data)
+    } catch {
+      setFeedbackMensajes({
+        tipo: "err",
+        texto: "No se pudieron cargar los mensajes desde el servidor.",
+      })
+    } finally {
+      setCargandoMensajes(false)
+    }
+  }
+
   useEffect(() => {
     void cargar()
+    void cargarMensajes()
   }, [])
 
   const handleCerrarSesion = () => {
@@ -79,6 +131,34 @@ function Vendedor() {
       setAviso(err instanceof Error ? err.message : "Error al actualizar estado")
     } finally {
       setActualizandoId(null)
+    }
+  }
+
+  const handleResponder = async (id: number) => {
+    const texto = (respuestasDraft[id] || "").trim()
+    setFeedbackMensajes(null)
+
+    if (!texto) {
+      setFeedbackMensajes({ tipo: "err", texto: "Escribe una respuesta antes de enviar." })
+      return
+    }
+
+    setEnviandoId(id)
+    try {
+      const actualizado = await enviarMensajeHilo(id, "ADMIN", texto)
+      setMensajes((prev) => prev.map((m) => (m.id === id ? actualizado : m)))
+      setRespuestasDraft((prev) => ({ ...prev, [id]: "" }))
+      setFeedbackMensajes({
+        tipo: "ok",
+        texto: `Respuesta enviada a ${actualizado.nombre} (${actualizado.email}).`,
+      })
+    } catch (err: any) {
+      setFeedbackMensajes({
+        tipo: "err",
+        texto: err?.message || "No se pudo guardar la respuesta.",
+      })
+    } finally {
+      setEnviandoId(null)
     }
   }
 
@@ -107,7 +187,7 @@ function Vendedor() {
     <>
       <Panel
         titulo="Panel de vendedor / empleado"
-        descripcion="Gestiona pedidos reales y el estado de despacho."
+        descripcion="Gestiona pedidos reales, atención a clientes y el catálogo de productos."
         onCerrarSesion={handleCerrarSesion}
         resumen={[
           { titulo: "Pedidos activos", valor: pendientes },
@@ -129,7 +209,6 @@ function Vendedor() {
         accionesTitulo="Acciones de vendedor"
         acciones={[
           { texto: "Ver catálogo", to: "/productos" },
-          { texto: "Contactar cliente", to: "/contacto", secundaria: true },
         ]}
       />
 
@@ -184,7 +263,7 @@ function Vendedor() {
             </div>
           </section>
 
-          <section className="dashboard-section">
+          <section className="dashboard-section mb-4">
             <h2 className="mb-3">Productos más vendidos (desde órdenes)</h2>
             {topProductos.length === 0 ? (
               <p className="text-muted">Aún no hay ventas registradas.</p>
@@ -201,6 +280,126 @@ function Vendedor() {
                 ))}
               </ul>
             )}
+          </section>
+
+          {/* Bandeja de atención a clientes */}
+          <section id="mensajes-clientes" className="dashboard-section mb-4">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <h2 className="m-0">Mensajes de clientes</h2>
+              <button
+                type="button"
+                className="dashboard-button secondary"
+                onClick={() => void cargarMensajes()}
+                disabled={cargandoMensajes}
+              >
+                {cargandoMensajes ? "Actualizando..." : "Actualizar mensajes"}
+              </button>
+            </div>
+
+            {feedbackMensajes && (
+              <p
+                className={
+                  feedbackMensajes.tipo === "ok"
+                    ? "text-success small fw-semibold mb-3"
+                    : "mensaje-error mb-3"
+                }
+              >
+                {feedbackMensajes.texto}
+              </p>
+            )}
+
+            {cargandoMensajes ? (
+              <p className="text-muted small">Cargando mensajes...</p>
+            ) : mensajes.length === 0 ? (
+              <p className="text-muted small">No hay mensajes de contacto registrados aún.</p>
+            ) : (
+              <div className="d-flex flex-column gap-3">
+                {mensajes.map((m) => {
+                  const esPendiente = m.estado !== "RESPONDIDO"
+                  const hilo = obtenerTurnosDesdeBD(m)
+                  return (
+                    <div
+                      key={m.id}
+                      className="p-3 border rounded bg-white"
+                      style={{ borderColor: "#e5e7eb" }}
+                    >
+                      <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                          <strong>#{m.id} · {m.nombre}</strong>{" "}
+                          <span className="text-muted small">
+                            — {m.email}
+                            {m.telefono ? ` • Tel: ${m.telefono}` : ""}
+                          </span>
+                          {m.createdAt && (
+                            <div className="text-muted small">
+                              Recibido: {new Date(m.createdAt).toLocaleString("es-CL")}
+                            </div>
+                          )}
+                        </div>
+                        <Estado texto={esPendiente ? "Pendiente" : "Respondido"} />
+                      </div>
+
+                      <div className="d-flex flex-column gap-2 mb-3">
+                        {hilo.map((turno, idx) => {
+                          const esStaff = turno.remitente === "ADMIN"
+                          return (
+                            <div
+                              key={turno.id ?? idx}
+                              className={`p-2 rounded small ${
+                                esStaff
+                                  ? "bg-light border-start border-3 border-success"
+                                  : "bg-light border-start border-3 border-warning"
+                              }`}
+                            >
+                              <strong>
+                                {esStaff ? "Ferretería Los Maestros" : m.nombre}:
+                              </strong>{" "}
+                              {turno.texto}
+                              {turno.createdAt && (
+                                <div className="text-muted" style={{ fontSize: "0.75rem" }}>
+                                  {new Date(turno.createdAt).toLocaleString("es-CL")}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      <div className="d-flex flex-column flex-md-row gap-2 mt-2">
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder="Escribe tu respuesta para el cliente..."
+                          value={respuestasDraft[m.id] ?? ""}
+                          onChange={(e) =>
+                            setRespuestasDraft((prev) => ({
+                              ...prev,
+                              [m.id]: e.target.value,
+                            }))
+                          }
+                        />
+                        <button
+                          type="button"
+                          className="dashboard-button"
+                          disabled={enviandoId === m.id}
+                          onClick={() => void handleResponder(m.id)}
+                        >
+                          {enviandoId === m.id
+                            ? "Guardando..."
+                            : esPendiente
+                            ? "Responder"
+                            : "Enviar mensaje"}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+
+          <section className="dashboard-section">
+            <GestionProductos />
           </section>
         </div>
       </main>

@@ -2,12 +2,22 @@ import { useParams } from 'react-router-dom'
 import BotonVolver from '../atoms/BotonVolver'
 import BotonAgregar from '../atoms/BotonAgregar'
 import NoEncontrado from './NoEncontrado'
-import {categorias,productos } from '../../data/productos'
+import { useCatalog } from '../../context/CatalogContext'
 import { useCart } from '../../context/CartContext'
+import Estado from '../atoms/Estado'
 
 function Detalleproducto() {
   const { id } = useParams()
   const { agregar } = useCart()
+  const { productos, categorias, cargando } = useCatalog()
+
+  if (cargando) {
+    return (
+      <main className="container my-5 text-center">
+        <Estado tipo="cargando" texto="Cargando producto..." />
+      </main>
+    )
+  }
 
   const producto = productos.find((p) => p.id === Number(id))
 
@@ -23,7 +33,7 @@ function Detalleproducto() {
         <div className="row g-5 align-items-center">
           <div className="col-12 col-md-5 text-center">
             <img
-              src={producto.imagen}
+              src={producto.imagen ?? ''}
               alt={producto.titulo}
               className="img-fluid detalle-img"
             />

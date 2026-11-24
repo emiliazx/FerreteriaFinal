@@ -8,7 +8,7 @@ import {
   type MensajeContacto,
   type MensajeContactoHilo,
 } from "../../api/contacto"
-import { productos } from "../../data/productos"
+import GestionProductos from "./GestionProductos"
 import Estado from "../atoms/Estado"
 import Panel from "../organism/Panel"
 import {
@@ -258,7 +258,7 @@ function Admin() {
                 <strong>Resumen actual del sistema:</strong>
                 <ul className="mb-0 mt-2">
                   <li>Usuarios registrados: <strong>{usuarios.length}</strong> (activos: <strong>{usuariosActivosCount}</strong>)</li>
-                  <li>Productos disponibles en catálogo: <strong>{productos.length}</strong></li>
+                  <li>Productos disponibles en catálogo: gestiona abajo</li>
                   <li>Órdenes registradas: <strong>{ordenes.length}</strong> | Pagos registrados: <strong>{pagos.length}</strong></li>
                   <li>Consultas totales recibidas: <strong>{mensajes.length}</strong></li>
                   <li>Consultas pendientes: <strong>{pendientesCount}</strong></li>
@@ -485,6 +485,10 @@ function Admin() {
                 })}
               </div>
             )}
+          </section>
+
+          <section className="dashboard-section mb-4">
+            <GestionProductos />
           </section>
         </div>
       </main>
